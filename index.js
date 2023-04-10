@@ -89,6 +89,7 @@ app.post("/post", uploadMiddleware.single("file"), async (req, res) => {
   const { token } = req.cookies;
   jwt.verify(token, secret, {}, async (err, info) => {
     if (err) throw err;
+    console.log("infoid", info.username);
     const { title, summary, content } = req.body;
     const postDoc = await Post.create({
       title,
@@ -96,6 +97,7 @@ app.post("/post", uploadMiddleware.single("file"), async (req, res) => {
       content,
       cover: newPath,
       author: info.id,
+      created_by: info.username,
     });
     res.json(postDoc);
   });
@@ -161,18 +163,13 @@ app.delete(`/post/:id`, async (req, res) => {
 });
 
 app.get("/user/:userId/posts", async (req, res) => {
-  const { token } = req.cookies;
-  jwt.verify(token, secret, {}, async (err, info) => {
-    const userId = info.id;
-    const posts = await (
-      await Post.find({ author: userId }).exec()
-    ).sort((a, b) => {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-
-    res.json(posts);
-    if (err) throw err;
+  const { userId } = req.params;
+  const posts = await (
+    await Post.find({ created_by: userId }).exec()
+  ).sort((a, b) => {
+    return new Date(b.createdAt) - new Date(a.createdAt);
   });
+  res.json(posts);
 });
 
 /* app.get(`/user/:userId/posts`, async (req, res) => {
